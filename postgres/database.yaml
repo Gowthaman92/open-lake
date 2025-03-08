@@ -1,0 +1,21 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: open-lake-postgres-cluster
+spec:
+  teamId: "openlake"
+  volume:
+    size: 4Gi
+  numberOfInstances: 1
+  users:
+    openlake: # database owner
+      - superuser
+      - createdb
+    db_user: [] # role for application foo
+    metastore: []
+    jupyterhub: []
+  databases:
+    metastore_db: metastore
+    jupyterhub: jupyterhub
+  postgresql:
+    version: "16"

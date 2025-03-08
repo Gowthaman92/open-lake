@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hive-metastore-env
+data:
+  # Database configuration
+  DB_HOST: "open-lake-postgres-cluster"
+  DB_PORT: "5432"
+  DB_NAME: "metastore_db"
+
+  # Azure configuration
+  AZURE_STORAGE_ACCOUNT: "openlakeblobstorage"
+  AZURE_CONTAINER_NAME: "datalake"
+  WAREHOUSE_DIR: "warehouse"
