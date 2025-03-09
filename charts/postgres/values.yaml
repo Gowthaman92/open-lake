@@ -1,0 +1,29 @@
+# Postgres Operator configuration
+operator:
+  enabled: true
+  # Additional operator configuration
+
+# Postgres Operator UI configuration
+operatorUI:
+  enabled: false
+  # Additional UI configuration
+
+# PostgreSQL instance configuration
+postgresql:
+  teamId: "openlake"
+  version: "15"
+  numberOfInstances: 1
+  volume:
+    size: 1Gi
+  users:
+    openlake:
+      - superuser
+      - createdb
+    jupyterhub:
+      - createdb
+    hive:
+      - createdb
+  databases:
+    openlake: openlake 
+    metastore_db: hive
+    jupyterhub: jupyterhub

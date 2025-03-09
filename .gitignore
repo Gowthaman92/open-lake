@@ -3,3 +3,5 @@ hive-metastore/.env
 **/generated/
 hive-metastore/hive-secrets.yaml
 .DS_Store
+**/Chart.lock
+**/*.tgz
