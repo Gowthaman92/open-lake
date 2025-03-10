@@ -1,15 +1,21 @@
 # Required values for Hive Metastore deployment
 storage:
-  type: "azure"  # Required: azure, aws, or gcp
+  # Required: Choose your cloud provider
+  type: "azure"  # One of: azure, aws, gcp
+  
+  # Azure Configuration
   azure:
-    storageAccount: ""      # Required: Azure storage account name
+    storageAccount: ""      # Required: Storage account name
     containerName: ""       # Required: Container name
-    # Either storageKey or existingSecret must be provided
-    storageKey: ""         # Option 1: Direct storage key (not recommended for production)
-    existingSecret: ""     # Option 2: Name of existing secret containing storage key
+    storageKey: ""         # Required if not using existingSecret
+    # Optional: Use existing Kubernetes secret instead of storageKey
+    existingSecret:
+      name: ""             # Name of the existing secret
+      key: "storage-key"   # Key in the secret containing the storage key
 
 database:
-  mode: "internal"         # Required: "internal" or "external"
+  # Required: Choose database mode
+  mode: "internal"         # One of: internal, external
   # If external, these are required:
   external:
     host: ""
@@ -17,5 +23,9 @@ database:
     name: "metastore_db"
     user: ""
     # Either password or existingSecret must be provided
-    password: ""
-    existingSecret: "" 
+    password: ""          # Required if not using existingSecret
+    existingSecret:
+      name: ""           # Name of the existing secret
+      key: "password"    # Key in the secret containing the password
+
+# Optional: Add any other required values here 

@@ -96,57 +96,20 @@ spec:
         
         # Storage credentials
         {{- if eq .Values.storage.type "azure" }}
-        {{- if .Values.storage.azure.existingSecret }}
         - name: AZURE_STORAGE_KEY
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.storage.azure.existingSecret }}
-              key: {{ .Values.storage.azure.secretKey | default "azure-storage-key" }}
-        {{- else }}
-        - name: AZURE_STORAGE_KEY
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "openlake.hive.serviceName" . }}-secrets
-              key: azure-storage-key
+              name: {{ .Values.storage.azure.existingSecret.name | default (printf "%s-storage-credentials" .Release.Name) }}
+              key: {{ .Values.storage.azure.existingSecret.key | default "storage-key" }}
         {{- end }}
-        {{- else if eq .Values.storage.type "aws" }}
-        {{- if .Values.storage.aws.existingSecret }}
-        - name: AWS_ACCESS_KEY
+        
+        # Database credentials
+        {{- if eq .Values.database.mode "external" }}
+        - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.storage.aws.existingSecret }}
-              key: {{ .Values.storage.aws.accessKeyKey | default "access-key" }}
-        - name: AWS_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.storage.aws.existingSecret }}
-              key: {{ .Values.storage.aws.secretKeyKey | default "secret-key" }}
-        {{- else }}
-        - name: AWS_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "openlake.hive.serviceName" . }}-secrets
-              key: aws-access-key
-        - name: AWS_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "openlake.hive.serviceName" . }}-secrets
-              key: aws-secret-key
-        {{- end }}
-        {{- else if eq .Values.storage.type "gcp" }}
-        {{- if .Values.storage.gcp.existingSecret }}
-        - name: GCP_KEY_FILE
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.storage.gcp.existingSecret }}
-              key: {{ .Values.storage.gcp.keyFileKey | default "key-file" }}
-        {{- else }}
-        - name: GCP_KEY_FILE
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "openlake.hive.serviceName" . }}-secrets
-              key: gcp-key-file
-        {{- end }}
+              name: {{ .Values.database.external.existingSecret.name | default (printf "%s-db-credentials" .Release.Name) }}
+              key: {{ .Values.database.external.existingSecret.key | default "password" }}
         {{- end }}
 
       # Main container configuration
