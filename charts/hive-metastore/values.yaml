@@ -1,139 +1,72 @@
 # Default values for hive-metastore.
 # This is a YAML-formatted file.
 
+# See required-values.yaml for mandatory configuration
+
 # Replica count for the deployment
 replicaCount: 1
 
 # Image configuration
 image:
   repository: hive-metastore
-  registry: "localhost:5000"  # Set default for local development
-  tag: "3.1.2"
-  pullPolicy: IfNotPresent    # Important for local development
+  tag: "latest"
+  pullPolicy: IfNotPresent
 
 # Service configuration
 service:
   port: 9083
   type: ClusterIP
 
-# Database configuration
-database:
-  # Connection mode: "internal" (use Zalando PostgreSQL), "external" (use external PostgreSQL)
-  mode: "internal"
-  
-  # SSL configuration
-  ssl:
-    enabled: true
-  
-  # Internal PostgreSQL configuration (used when mode is "internal")
-  internal:
-    # Database name in the PostgreSQL cluster
-    name: "metastore_db"
-    # Database user name (used for secret name)
-    user: "hive"
-    # PostgreSQL cluster name - leave empty to use the default Open Lake PostgreSQL
-    clusterName: ""
-  
-  # External PostgreSQL configuration (used when mode is "external")
-  # external:
-  #   # Connection details
-  #   host: ""
-  #   port: "5432"
-  #   name: "metastore_db"
-    
-    # Credentials handling: "secret" (use Kubernetes Secret) or "values" (use values directly)
-    # credentialsMode: "secret"
-    
-    # When credentialsMode is "secret"
-    # existingSecret: ""
-    # secretUserKey: "username"
-    # secretPasswordKey: "password"
-    
-    # When credentialsMode is "values" (not recommended for production)
-    # user: "hive"
-    # password: ""
-
-# Storage configuration
-storage:
-  # Storage type: "azure", "aws", "gcp", or "local"
-  type: "azure"
-  
-  # Azure Blob Storage configuration
-  azure:
-    storageAccount: ""
-    containerName: "datalake"
-    # Either provide storageKey directly (not recommended for production)
-    storageKey: ""
-    # Or reference an existing secret
-    # To create the secret, use:
-    # kubectl create secret generic azure-storage-secret \
-    #   --from-literal=azure-storage-key=<your-storage-key>
-    existingSecret: "azure-storage-secret"  # Name of the Kubernetes secret containing the storage key
-    secretKey: "azure-storage-key"          # Key in the secret that contains the storage key value
-  
-  # AWS S3 configuration
-  aws:
-    bucketName: "my-bucket"
-    region: "us-east-1"
-    # Either provide keys directly (not recommended for production)
-    accessKey: ""
-    secretKey: ""
-    # Or reference an existing secret
-    existingSecret: ""
-    accessKeyKey: "access-key"
-    secretKeyKey: "secret-key"
-  
-  # Google Cloud Storage configuration
-  gcp:
-    bucketName: "my-bucket"
-    projectId: "my-project"
-    # Either provide key file directly (not recommended for production)
-    keyFile: ""
-    # Or reference an existing secret
-    existingSecret: ""
-    keyFileKey: "key-file"
-
-# Hive configuration
-hive:
-  warehouseDir: "warehouse"
-  schemaInit:
-    enabled: true
-
-# Resource limits and requests
+# Add resource constraints
 resources:
-  limits:
-    cpu: "1000m"
-    memory: "1Gi"
   requests:
     cpu: "1000m"
-    memory: "1Gi"
+    memory: "2Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
 
-# Pod annotations
-podAnnotations: {}
-
-# Node selector
-nodeSelector: {}
-
-# Tolerations
-tolerations: []
-
-# Affinity
-affinity: {}
-
-# Readiness probe
+# Add liveness and readiness probes
 readinessProbe:
   enabled: true
-  initialDelaySeconds: 5
+  initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
   successThreshold: 1
 
-# Liveness probe
 livenessProbe:
   enabled: true
-  initialDelaySeconds: 15
+  initialDelaySeconds: 60
   periodSeconds: 20
   timeoutSeconds: 5
   failureThreshold: 3
-  successThreshold: 1 
+  successThreshold: 1
+
+# Add pod disruption budget for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Add configurable JVM options
+jvmOptions:
+  xmx: "2G"
+  xms: "1G"
+  extraOpts: 
+    - "-XX:+UseG1GC"
+    - "-XX:G1HeapRegionSize=32M"
+
+# Optional configurations and overrides
+hive:
+  warehouseDir: "warehouse"
+  schemaInit:
+    enabled: true
+
+# Optional annotations and labels
+podAnnotations: {}
+podLabels: {}
+
+# Optional node selector, affinity, and tolerations
+nodeSelector: {}
+affinity: {}
+tolerations: []

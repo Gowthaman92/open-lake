@@ -1,0 +1,21 @@
+# Required values for Hive Metastore deployment
+storage:
+  type: "azure"  # Required: azure, aws, or gcp
+  azure:
+    storageAccount: ""      # Required: Azure storage account name
+    containerName: ""       # Required: Container name
+    # Either storageKey or existingSecret must be provided
+    storageKey: ""         # Option 1: Direct storage key (not recommended for production)
+    existingSecret: ""     # Option 2: Name of existing secret containing storage key
+
+database:
+  mode: "internal"         # Required: "internal" or "external"
+  # If external, these are required:
+  external:
+    host: ""
+    port: "5432"
+    name: "metastore_db"
+    user: ""
+    # Either password or existingSecret must be provided
+    password: ""
+    existingSecret: "" 

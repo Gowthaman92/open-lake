@@ -7,7 +7,6 @@ CLUSTER_NAME=open-lake
 KUBECTL_CONTEXT=kind-${CLUSTER_NAME}
 BUILD_IMAGES=${BUILD_IMAGES:-"true"}    # Default to true for local development
 PUSH_IMAGES=${PUSH_IMAGES:-"false"}     # Changed default to false
-REGISTRY=${REGISTRY:-"localhost:5000"}
 
 if [ "$1" == "clean" ]; then
     kind delete cluster -n ${CLUSTER_NAME}
@@ -79,21 +78,20 @@ helm dependency update $SCRIPT_DIR/charts/hive-metastore
 # Build and load Hive Metastore image if needed
 if [ "$BUILD_IMAGES" == "true" ]; then
   echo "Building Hive Metastore image..."
-  docker build -t ${REGISTRY}/hive-metastore:latest ./hive-metastore
+  docker build -t hive-metastore:latest ./hive-metastore
   
   echo "Loading image into Kind cluster..."
-  kind load docker-image ${REGISTRY}/hive-metastore:latest --name ${CLUSTER_NAME}
+  kind load docker-image hive-metastore:latest --name ${CLUSTER_NAME}
   
   if [ "$PUSH_IMAGES" == "true" ]; then
-    echo "Pushing Hive Metastore image to registry..."
-    docker push ${REGISTRY}/hive-metastore:latest
+    echo "Pushing Hive Metastore image..."
+    docker push hive-metastore:latest
   fi
 fi
 
 # Install/upgrade Hive Metastore
 helm upgrade --install hive-metastore $SCRIPT_DIR/charts/hive-metastore \
   -f $SCRIPT_DIR/charts/hive-metastore/values.yaml \
-  --set image.registry=${REGISTRY} \
   --kube-context=${KUBECTL_CONTEXT}
 
 # Wait for Hive Metastore to be ready

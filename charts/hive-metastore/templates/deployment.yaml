@@ -25,7 +25,7 @@ spec:
       # Adding an init container to handle configuration processing
       initContainers:
       - name: config-init
-        image: "{{ if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/bin/sh"]
         args:
@@ -152,7 +152,7 @@ spec:
       # Main container configuration
       containers:
       - name: {{ .Chart.Name }}
-        image: "{{ if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/bin/sh"]
         args:
