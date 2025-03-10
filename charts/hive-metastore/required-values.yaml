@@ -11,7 +11,7 @@ storage:
     # Optional: Use existing Kubernetes secret instead of storageKey
     existingSecret:
       name: "azure-storage-secret"             # Name of the existing secret
-      key: "azure-storage-key"   # Key in the secret containing the storage key
+      key: "storage-key"   # Key in the secret containing the storage key
 
 database:
   # Required: Choose database mode

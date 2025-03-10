@@ -60,8 +60,8 @@ First, create your Kubernetes secret:
 ```bash
 # Create a Kubernetes secret named 'my-storage-secret'
 # The secret will store your storage key under the key name 'storage-key'
-kubectl create secret generic my-storage-secret \
-  --from-literal=storage-key='your-storage-key'
+kubectl create secret generic azure-storage-secret \
+  --from-literal=storage-key='storage-key'
 ```
 
 Then configure Hive Metastore to use this secret:
