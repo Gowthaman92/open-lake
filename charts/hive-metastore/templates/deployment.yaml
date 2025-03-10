@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "openlake.hive.serviceName" . }}
+  name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}
   labels:
-    {{- include "openlake.labels" . | nindent 4 }}
+    {{- include "openlake.labels" (dict "component" "hive-metastore" "context" $ "Release" .Release) | nindent 4 }}
 spec:
   # Add progress deadline to fail faster if pods keep crashing
   progressDeadlineSeconds: 200  # 10 minutes
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "openlake.hive.serviceName" . }}
+      app.kubernetes.io/name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "openlake.hive.serviceName" . }}
+        app.kubernetes.io/name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
-        {{- include "openlake.labels" . | nindent 8 }}
+        {{- include "openlake.labels" (dict "component" "hive-metastore" "context" $ "Release" .Release) | nindent 8 }}
       {{- with .Values.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
@@ -50,7 +50,7 @@ spec:
           mountPath: /config-final
         envFrom:
         - configMapRef:
-            name: {{ include "openlake.hive.serviceName" . }}-config
+            name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}-config
         env:
         # Database configuration
         {{- if eq .Values.database.mode "internal" }}
@@ -167,7 +167,7 @@ spec:
       volumes:
       - name: config-template
         configMap:
-          name: {{ include "openlake.hive.serviceName" . }}-config
+          name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}-config
       - name: config-final
         emptyDir: {}
       {{- with .Values.nodeSelector }}

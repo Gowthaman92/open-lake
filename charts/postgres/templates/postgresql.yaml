@@ -3,7 +3,7 @@ kind: postgresql
 metadata:
   name: {{ include "openlake.postgres.clusterName" . }}
   labels:
-    {{- include "openlake.labels" . | nindent 4 }}
+    {{- include "openlake.labels" (dict "component" "postgres" "context" $ "Release" .Release) | nindent 4 }}
 spec:
   teamId: {{ .Values.postgresql.teamId | quote }}
   volume:

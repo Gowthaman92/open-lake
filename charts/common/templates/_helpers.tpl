@@ -2,9 +2,26 @@
 Common labels
 */}}
 {{- define "openlake.labels" -}}
-app.kubernetes.io/name: {{ include "openlake.hive.serviceName" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- $releaseName := "" }}
+{{- $releaseService := "" }}
+{{- if .Release }}
+  {{- $releaseName = .Release.Name }}
+  {{- $releaseService = .Release.Service }}
+{{- else if .context }}
+  {{- if .context.Release }}
+    {{- $releaseName = .context.Release.Name }}
+    {{- $releaseService = .context.Release.Service }}
+  {{- end }}
+{{- end }}
+
+{{- if .component }}
+app.kubernetes.io/name: {{ include "openlake.serviceName" (dict "component" .component "context" .context) }}
+{{- else }}
+app.kubernetes.io/name: {{ include "openlake.name" . }}
+{{- end }}
+app.kubernetes.io/instance: {{ $releaseName }}
+app.kubernetes.io/managed-by: {{ $releaseService }}
+app.kubernetes.io/part-of: openlake
 {{- end }}
 
 {{/*
@@ -15,17 +32,22 @@ Common name prefix
 {{- end }}
 
 {{/*
+Generic service name helper
+*/}}
+{{- define "openlake.serviceName" -}}
+{{- $component := .component | default "" -}}
+{{- if $component -}}
+{{- printf "%s-%s" (include "openlake.name" .context) $component -}}
+{{- else -}}
+{{- include "openlake.name" .context -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Postgres cluster name
 */}}
 {{- define "openlake.postgres.clusterName" -}}
 {{- printf "%s-postgres-cluster" (include "openlake.name" .) -}}
-{{- end }}
-
-{{/*
-Hive Metastore service name
-*/}}
-{{- define "openlake.hive.serviceName" -}}
-{{- printf "%s-hive-metastore" (include "openlake.name" .) -}}
 {{- end }}
 
 {{/*

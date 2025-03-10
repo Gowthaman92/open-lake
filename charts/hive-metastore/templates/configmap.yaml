@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "openlake.hive.serviceName" . }}-config
+  name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}-config
   labels:
-    {{- include "openlake.labels" . | nindent 4 }}
+    {{- include "openlake.labels" (dict "component" "hive-metastore" "context" $ "Release" .Release) | nindent 4 }}
 data:
   # Environment variables
   {{- if eq .Values.storage.type "azure" }}
