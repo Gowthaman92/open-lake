@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "openlake.hive.serviceName" . }}
+  labels:
+    {{- include "openlake.labels" . | nindent 4 }}
+spec:
+  ports:
+  - port: {{ .Values.service.port }}
+    targetPort: metastore
+    protocol: TCP
+    name: thrift
+  selector:
+    app.kubernetes.io/name: {{ include "openlake.hive.serviceName" . }} 

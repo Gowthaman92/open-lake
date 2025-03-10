@@ -1,0 +1,136 @@
+# Default values for hive-metastore.
+# This is a YAML-formatted file.
+
+# Replica count for the deployment
+replicaCount: 1
+
+# Image configuration
+image:
+  repository: hive-metastore
+  registry: "localhost:5000"  # Set default for local development
+  tag: latest
+  pullPolicy: IfNotPresent    # Important for local development
+
+# Service configuration
+service:
+  port: 9083
+  type: ClusterIP
+
+# Database configuration
+database:
+  # Connection mode: "internal" (use Zalando PostgreSQL), "external" (use external PostgreSQL)
+  mode: "internal"
+  
+  # SSL configuration
+  ssl:
+    enabled: true
+  
+  # Internal PostgreSQL configuration (used when mode is "internal")
+  internal:
+    # Database name in the PostgreSQL cluster
+    name: "metastore_db"
+    # Database user name (used for secret name)
+    user: "hive"
+    # PostgreSQL cluster name - leave empty to use the default Open Lake PostgreSQL
+    clusterName: ""
+  
+  # External PostgreSQL configuration (used when mode is "external")
+  # external:
+  #   # Connection details
+  #   host: ""
+  #   port: "5432"
+  #   name: "metastore_db"
+    
+    # Credentials handling: "secret" (use Kubernetes Secret) or "values" (use values directly)
+    # credentialsMode: "secret"
+    
+    # When credentialsMode is "secret"
+    # existingSecret: ""
+    # secretUserKey: "username"
+    # secretPasswordKey: "password"
+    
+    # When credentialsMode is "values" (not recommended for production)
+    # user: "hive"
+    # password: ""
+
+# Storage configuration
+storage:
+  # Storage type: "azure", "aws", "gcp", or "local"
+  type: "azure"
+  
+  # Azure Blob Storage configuration
+  azure:
+    storageAccount: "prodsbaiblobstorage"
+    containerName: "datalake"
+    # Either provide storageKey directly (not recommended for production)
+    storageKey: ""
+    # Or reference an existing secret
+    existingSecret: ""
+    secretKey: "azure-storage-key"
+  
+  # AWS S3 configuration
+  aws:
+    bucketName: "my-bucket"
+    region: "us-east-1"
+    # Either provide keys directly (not recommended for production)
+    accessKey: ""
+    secretKey: ""
+    # Or reference an existing secret
+    existingSecret: ""
+    accessKeyKey: "access-key"
+    secretKeyKey: "secret-key"
+  
+  # Google Cloud Storage configuration
+  gcp:
+    bucketName: "my-bucket"
+    projectId: "my-project"
+    # Either provide key file directly (not recommended for production)
+    keyFile: ""
+    # Or reference an existing secret
+    existingSecret: ""
+    keyFileKey: "key-file"
+
+# Hive configuration
+hive:
+  warehouseDir: "warehouse"
+  schemaInit:
+    enabled: true
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Pod annotations
+podAnnotations: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Readiness probe
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Liveness probe
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1 

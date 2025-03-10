@@ -2,7 +2,7 @@
 Common labels
 */}}
 {{- define "openlake.labels" -}}
-app.kubernetes.io/name: {{ .Chart.Name }}
+app.kubernetes.io/name: {{ include "openlake.hive.serviceName" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
@@ -22,20 +22,15 @@ Postgres cluster name
 {{- end }}
 
 {{/*
-Trino service name
+Hive Metastore service name
 */}}
-{{- define "openlake.trino.serviceName" -}}
-{{- printf "%s-trino" (include "openlake.name" .) -}}
+{{- define "openlake.hive.serviceName" -}}
+{{- printf "%s-hive-metastore" (include "openlake.name" .) -}}
 {{- end }}
 
 {{/*
-Generic service name helper
+Hive Metastore config name
 */}}
-{{- define "openlake.serviceName" -}}
-{{- $name := include "openlake.name" . -}}
-{{- if .serviceSuffix -}}
-{{- printf "%s-%s" $name .serviceSuffix -}}
-{{- else -}}
-{{- $name -}}
-{{- end -}}
+{{- define "openlake.hive.configName" -}}
+{{- printf "%s-hive-metastore-cfg" (include "openlake.name" .) -}}
 {{- end }}
