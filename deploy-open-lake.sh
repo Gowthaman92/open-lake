@@ -89,8 +89,9 @@ if [ "$BUILD_IMAGES" == "true" ]; then
   fi
 fi
 
-# Install/upgrade Hive Metastore
+# Install/upgrade Hive Metastore with both required and optional values
 helm upgrade --install hive-metastore $SCRIPT_DIR/charts/hive-metastore \
+  -f $SCRIPT_DIR/charts/hive-metastore/required-values.yaml \
   -f $SCRIPT_DIR/charts/hive-metastore/values.yaml \
   --kube-context=${KUBECTL_CONTEXT}
 

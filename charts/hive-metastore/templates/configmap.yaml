@@ -26,7 +26,7 @@ data:
       <!-- PostgreSQL Configuration -->
       <property>
         <name>javax.jdo.option.ConnectionURL</name>
-        <value>jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}{{ if .Values.database.ssl.enabled }}?ssl=true&amp;sslfactory=org.postgresql.ssl.NonValidatingFactory{{ end }}</value>
+        <value>jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}{{ if .Values.database.ssl.enabled }}?ssl=true&amp;sslmode=require&amp;sslfactory=org.postgresql.ssl.NonValidatingFactory{{ end }}</value>
       </property>
       <property>
         <name>javax.jdo.option.ConnectionDriverName</name>

@@ -3,6 +3,11 @@
 
 # See required-values.yaml for mandatory configuration
 
+# Database SSL configuration
+database:
+  ssl:
+    enabled: true  # Enable SSL for database connections
+
 # Replica count for the deployment
 replicaCount: 1
 

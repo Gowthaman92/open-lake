@@ -5,6 +5,8 @@ metadata:
   labels:
     {{- include "openlake.labels" . | nindent 4 }}
 spec:
+  # Add progress deadline to fail faster if pods keep crashing
+  progressDeadlineSeconds: 200  # 10 minutes
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
@@ -22,6 +24,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      # Add restart policy
+      restartPolicy: Always
+      # Add termination grace period
+      terminationGracePeriodSeconds: 30
       # Adding an init container to handle configuration processing
       initContainers:
       - name: config-init
@@ -139,6 +145,11 @@ spec:
         - name: config-final
           mountPath: /opt/hive/conf/hive-site.xml
           subPath: hive-site.xml
+        startupProbe:
+          tcpSocket:
+            port: {{ .Values.service.port }}
+          failureThreshold: 1  # Try once
+          periodSeconds: 10    # Check every 10 seconds
         {{- if .Values.readinessProbe.enabled }}
         readinessProbe:
           tcpSocket:
