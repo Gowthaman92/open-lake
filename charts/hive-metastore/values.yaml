@@ -8,7 +8,7 @@ replicaCount: 1
 image:
   repository: hive-metastore
   registry: "localhost:5000"  # Set default for local development
-  tag: latest
+  tag: "3.1.2"
   pullPolicy: IfNotPresent    # Important for local development
 
 # Service configuration
@@ -60,7 +60,7 @@ storage:
   
   # Azure Blob Storage configuration
   azure:
-    storageAccount: "stagesbaiblobstorage"
+    storageAccount: ""
     containerName: "datalake"
     # Either provide storageKey directly (not recommended for production)
     storageKey: ""
@@ -102,11 +102,11 @@ hive:
 # Resource limits and requests
 resources:
   limits:
-    cpu: 1000m
-    memory: 2Gi
+    cpu: "1000m"
+    memory: "1Gi"
   requests:
-    cpu: 500m
-    memory: 1Gi
+    cpu: "1000m"
+    memory: "1Gi"
 
 # Pod annotations
 podAnnotations: {}

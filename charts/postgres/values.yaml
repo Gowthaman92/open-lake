@@ -15,6 +15,20 @@ postgresql:
   numberOfInstances: 1
   volume:
     size: 1Gi
+  # Add resource constraints
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  # Add pod anti-affinity for HA
+  podAntiAffinity: true
+  # Add connection pooling settings
+  connectionPooler:
+    enabled: true
+    maxPoolSize: 20
   users:
     openlake:
       - superuser
