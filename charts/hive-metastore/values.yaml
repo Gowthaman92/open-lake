@@ -60,13 +60,16 @@ storage:
   
   # Azure Blob Storage configuration
   azure:
-    storageAccount: "prodsbaiblobstorage"
+    storageAccount: "stagesbaiblobstorage"
     containerName: "datalake"
     # Either provide storageKey directly (not recommended for production)
     storageKey: ""
     # Or reference an existing secret
-    existingSecret: ""
-    secretKey: "azure-storage-key"
+    # To create the secret, use:
+    # kubectl create secret generic azure-storage-secret \
+    #   --from-literal=azure-storage-key=<your-storage-key>
+    existingSecret: "azure-storage-secret"  # Name of the Kubernetes secret containing the storage key
+    secretKey: "azure-storage-key"          # Key in the secret that contains the storage key value
   
   # AWS S3 configuration
   aws:
