@@ -1,1 +1,40 @@
- 
+# Helm chart dependencies
+*.tgz
+Chart.lock
+
+# Kubernetes generated files
+kubeconfig*
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+/build/
+/dist/
+/target/
+
+# Dependency directories
+/node_modules/
+/vendor/
+
+# Log files
+*.log
+logs/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Temporary files
+*.tmp
+*.temp
+.cache/ 
