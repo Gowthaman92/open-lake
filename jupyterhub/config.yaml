@@ -1,17 +1,17 @@
 hub:
   db:
     type: postgres
-    url: postgresql://open-lake-postgres-cluster:5432/jupyterhub
+    url: postgresql://openlake-postgres-cluster:5432/jupyterhub
   extraEnv:
     PGUSER:
       valueFrom:
         secretKeyRef:
-          name: jupyterhub.open-lake-postgres-cluster.credentials.postgresql.acid.zalan.do
+          name: jupyterhub.openlake-postgres-cluster.credentials.postgresql.acid.zalan.do
           key: username
     PGPASSWORD:
       valueFrom:
         secretKeyRef:
-          name: jupyterhub.open-lake-postgres-cluster.credentials.postgresql.acid.zalan.do
+          name: jupyterhub.openlake-postgres-cluster.credentials.postgresql.acid.zalan.do
           key: password
   config:
     JupyterHub:
