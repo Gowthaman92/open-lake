@@ -49,10 +49,3 @@ Postgres cluster name
 {{- define "openlake.postgres.clusterName" -}}
 {{- printf "%s-postgres-cluster" (include "openlake.name" .) -}}
 {{- end }}
-
-{{/*
-Hive Metastore config name
-*/}}
-{{- define "openlake.hive.configName" -}}
-{{- printf "%s-hive-metastore-cfg" (include "openlake.name" .) -}}
-{{- end }}
