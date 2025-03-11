@@ -1,0 +1,184 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}
+  labels:
+    {{- include "openlake.labels" (dict "component" "hive-metastore" "context" $ "Release" .Release) | nindent 4 }}
+spec:
+  # Add progress deadline to fail faster if pods keep crashing
+  progressDeadlineSeconds: 200  # 10 minutes
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        {{- include "openlake.labels" (dict "component" "hive-metastore" "context" $ "Release" .Release) | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      # Add restart policy
+      restartPolicy: Always
+      # Add termination grace period
+      terminationGracePeriodSeconds: 30
+      # Adding an init container to handle configuration processing
+      initContainers:
+      - name: config-init
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          # Create a temporary directory for processing
+          mkdir -p /tmp/hive-conf
+          # Process the template with environment variables
+          envsubst < /config-template/hive-site.xml > /tmp/hive-conf/hive-site.xml
+          # Copy the processed file to the shared volume
+          cp /tmp/hive-conf/hive-site.xml /config-final/
+        volumeMounts:
+        - name: config-template
+          mountPath: /config-template
+        - name: config-final
+          mountPath: /config-final
+        envFrom:
+        - configMapRef:
+            name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}-config
+        env:
+        # Database configuration
+        {{- if eq .Values.database.mode "internal" }}
+        - name: DB_HOST
+          {{- if .Values.database.internal.clusterName }}
+          value: {{ .Values.database.internal.clusterName | quote }}
+          {{- else }}
+          value: {{ include "openlake.postgres.clusterName" . | quote }}
+          {{- end }}
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: {{ .Values.database.internal.name | quote }}
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.internal.user }}.{{ if .Values.database.internal.clusterName }}{{ .Values.database.internal.clusterName }}{{ else }}{{ include "openlake.postgres.clusterName" . }}{{ end }}.credentials.postgresql.acid.zalan.do
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.internal.user }}.{{ if .Values.database.internal.clusterName }}{{ .Values.database.internal.clusterName }}{{ else }}{{ include "openlake.postgres.clusterName" . }}{{ end }}.credentials.postgresql.acid.zalan.do
+              key: password
+        {{- else }}
+        - name: DB_HOST
+          value: {{ .Values.database.external.host | quote }}
+        - name: DB_PORT
+          value: {{ .Values.database.external.port | quote }}
+        - name: DB_NAME
+          value: {{ .Values.database.external.name | quote }}
+        {{- if eq .Values.database.external.credentialsMode "secret" }}
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.external.existingSecret }}
+              key: {{ .Values.database.external.secretUserKey }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.external.existingSecret }}
+              key: {{ .Values.database.external.secretPasswordKey }}
+        {{- else }}
+        - name: DB_USERNAME
+          value: {{ .Values.database.external.user | quote }}
+        - name: DB_PASSWORD
+          value: {{ .Values.database.external.password | quote }}
+        {{- end }}
+        {{- end }}
+        
+        # Storage credentials
+        {{- if eq .Values.storage.type "azure" }}
+        - name: AZURE_STORAGE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.storage.azure.existingSecret.name | default (printf "%s-storage-credentials" .Release.Name) }}
+              key: {{ .Values.storage.azure.existingSecret.key | default "storage-key" }}
+        {{- end }}
+        
+        # Database credentials
+        {{- if eq .Values.database.mode "external" }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.external.existingSecret.name | default (printf "%s-db-credentials" .Release.Name) }}
+              key: {{ .Values.database.external.existingSecret.key | default "password" }}
+        {{- end }}
+
+      # Main container configuration
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          {{- if .Values.hive.schemaInit.enabled }}
+          if /opt/hive/bin/schematool -dbType postgres -info | grep -q "Hive distribution version"; then
+            echo "Schema already initialized"
+          else
+            echo "Initializing schema"
+            /opt/hive/bin/schematool -dbType postgres -initSchema
+          fi
+          {{- end }}
+          echo "Starting Hive Metastore service..."
+          /opt/hive/bin/hive --service metastore
+        ports:
+        - name: metastore
+          containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        volumeMounts:
+        - name: config-final
+          mountPath: /opt/hive/conf/hive-site.xml
+          subPath: hive-site.xml
+        startupProbe:
+          tcpSocket:
+            port: {{ .Values.service.port }}
+          failureThreshold: 1  # Try once
+          periodSeconds: 10    # Check every 10 seconds
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.service.port }}
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+
+      # Volume definitions
+      volumes:
+      - name: config-template
+        configMap:
+          name: {{ include "openlake.serviceName" (dict "component" "hive-metastore" "context" .) }}-config
+      - name: config-final
+        emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }} 

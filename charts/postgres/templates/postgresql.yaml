@@ -1,0 +1,21 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: {{ include "openlake.postgres.clusterName" . }}
+  labels:
+    {{- include "openlake.labels" (dict "component" "postgres" "context" $ "Release" .Release) | nindent 4 }}
+spec:
+  teamId: {{ .Values.postgresql.teamId | quote }}
+  volume:
+    size: {{ .Values.postgresql.volume.size }}
+  numberOfInstances: {{ .Values.postgresql.numberOfInstances }}
+  users:
+    {{- range $user, $roles := .Values.postgresql.users }}
+    {{ $user }}: {{ $roles | toJson }}
+    {{- end }}
+  databases:
+    {{- range $dbName, $owner := .Values.postgresql.databases }}
+    {{ $dbName }}: {{ $owner }}
+    {{- end }}
+  postgresql:
+    version: {{ .Values.postgresql.version | quote }} 

@@ -1,0 +1,77 @@
+# Default values for hive-metastore.
+# This is a YAML-formatted file.
+
+# See required-values.yaml for mandatory configuration
+
+# Database SSL configuration
+database:
+  ssl:
+    enabled: true  # Enable SSL for database connections
+
+# Replica count for the deployment
+replicaCount: 1
+
+# Image configuration
+image:
+  repository: hive-metastore
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Service configuration
+service:
+  port: 9083
+  type: ClusterIP
+
+# Add resource constraints
+resources:
+  requests:
+    cpu: "1000m"
+    memory: "2Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+
+# Add liveness and readiness probes
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Add pod disruption budget for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Add configurable JVM options
+jvmOptions:
+  xmx: "2G"
+  xms: "1G"
+  extraOpts: 
+    - "-XX:+UseG1GC"
+    - "-XX:G1HeapRegionSize=32M"
+
+# Optional configurations and overrides
+hive:
+  warehouseDir: "warehouse"
+  schemaInit:
+    enabled: true
+
+# Optional annotations and labels
+podAnnotations: {}
+podLabels: {}
+
+# Optional node selector, affinity, and tolerations
+nodeSelector: {}
+affinity: {}
+tolerations: []

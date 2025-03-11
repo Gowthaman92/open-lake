@@ -1,0 +1,43 @@
+# Postgres Operator configuration
+operator:
+  enabled: true
+  # Additional operator configuration
+
+# Postgres Operator UI configuration
+operatorUI:
+  enabled: false
+  # Additional UI configuration
+
+# PostgreSQL instance configuration
+postgresql:
+  teamId: "openlake"
+  version: "15"
+  numberOfInstances: 1
+  volume:
+    size: 1Gi
+  # Add resource constraints
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  # Add pod anti-affinity for HA
+  podAntiAffinity: true
+  # Add connection pooling settings
+  connectionPooler:
+    enabled: true
+    maxPoolSize: 20
+  users:
+    openlake:
+      - superuser
+      - createdb
+    jupyterhub:
+      - createdb
+    hive:
+      - createdb
+  databases:
+    openlake: openlake 
+    metastore_db: hive
+    jupyterhub: jupyterhub

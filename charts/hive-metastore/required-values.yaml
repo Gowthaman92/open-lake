@@ -1,0 +1,37 @@
+# Required values for Hive Metastore deployment
+storage:
+  # Required: Choose your cloud provider
+  type: "azure"  # One of: azure, aws, gcp
+  
+  # Azure Configuration
+  azure:
+    storageAccount: "stagesbaiblobstorage"      # Required: Storage account name
+    containerName: "datalake"       # Required: Container name
+    storageKey: ""         # Required if not using existingSecret
+    # Optional: Use existing Kubernetes secret instead of storageKey
+    existingSecret:
+      name: "hive-metastore-storage-credentials"             # Name of the existing secret, change this to your secret name
+      key: "storage-key"   # Key in the secret containing the storage key, change this to your key name
+
+database:
+  # Required: Choose database mode
+  mode: "internal"         # One of: internal, external
+  
+  # Internal database configuration
+  internal:
+    name: "metastore_db"
+    user: "hive"
+  
+  # If external, these are required:
+  external:
+    host: ""
+    port: "5432"
+    name: "metastore_db"
+    user: ""
+    # Either password or existingSecret must be provided
+    password: ""          # Required if not using existingSecret
+    existingSecret:
+      name: ""           # Name of the existing secret
+      key: "password"    # Key in the secret containing the password
+
+# Optional: Add any other required values here 
