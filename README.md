@@ -1,13 +1,13 @@
 # Open Lake
 
-Open Lake is a data lakehouse platform deployed on Kubernetes, providing integrated components for data storage, processing, and analytics.
+Open Lake is an opensource data lakehouse platform deployed on Kubernetes, providing integrated components for data storage, processing, and analytics.
 
 ## Components
 
 - **PostgreSQL**: Database for metadata storage
 - **Hive Metastore**: Metadata service for data catalog
-- **Trino**: Distributed SQL query engine
-- **JupyterHub**: Interactive notebook environment
+- **Trino**: Distributed SQL query engine (In progress)
+- **JupyterHub**: Interactive notebook environment (In progress)
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ Open Lake is a data lakehouse platform deployed on Kubernetes, providing integra
 
 ## Required Values
 
-Make storage and database configuration in chart/hive-metastore/required-values.yaml
+Storage and database configuration in chart/hive-metastore/required-values.yaml
 
 ### Storage Configuration
 
