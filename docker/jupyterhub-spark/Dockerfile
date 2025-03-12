@@ -88,15 +88,5 @@ RUN pip install --no-cache-dir \
 # Create directory for Hive configuration
 RUN mkdir -p /etc/hive/conf
 
-# Add initialization script for Spark
-COPY spark-init.py /usr/local/bin/
-RUN chmod +x /usr/local/bin/spark-init.py
-
-# Create a directory for sample notebooks
-RUN mkdir -p /home/jovyan/examples
-
 # Switch back to jovyan user
 USER jovyan
-
-# Add Spark initialization to startup
-RUN echo "exec /usr/local/bin/spark-init.py" >> ~/.bashrc

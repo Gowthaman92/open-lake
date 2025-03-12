@@ -31,6 +31,12 @@ jupyterhub:
         minimum_password_length: 8
         enable_signup: true
 
+  # User scheduler configuration
+  scheduling:
+    userScheduler:
+      enabled: true
+      replicas: 1  # Set to 1 instead of the default 2
+
   # Culling configuration
   cull:
     enabled: true
@@ -68,10 +74,10 @@ jupyterhub:
             cull_busy: false
     cpu:
       limit: 4
-      guarantee: 2
+      guarantee: 1
     memory:
       limit: 8G
-      guarantee: 2G
+      guarantee: 1G
     storage:
       capacity: 5Gi
       dynamic: {}
@@ -104,16 +110,3 @@ jupyterhub:
       extraPorts: []
       loadBalancerIP:
       loadBalancerSourceRanges: []
-
-# Add Spark image configuration for your templates
-sparkImage:
-  image: "spark-jupyter-worker"
-  tag: "latest"
-  pullPolicy: IfNotPresent
-  sparkConfig:
-    hiveMetastoreUris: "thrift://openlake-hive-metastore:9083"
-    sparkExecutorInstances: 2
-    sparkExecutorMemory: "2g"
-    sparkExecutorCores: 1
-    sparkDriverMemory: "2g"
-    sparkDriverCores: 1

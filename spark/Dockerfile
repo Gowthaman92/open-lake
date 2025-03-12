@@ -57,10 +57,6 @@ RUN mkdir -p /tmp/spark-events && \
     chown -R spark:spark /tmp/spark-events && \
     chown -R spark:spark /opt/spark/jars/*
 
-# Add a wrapper script to process environment variables
-COPY start-spark.sh /opt/spark/bin/start-spark.sh
-RUN chmod +x /opt/spark/bin/start-spark.sh
-
 # Add a health check to verify Spark's availability
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD ps aux | grep org.apache.spark.deploy.master.Master | grep -v grep || exit 1
