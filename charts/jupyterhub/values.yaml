@@ -1,131 +1,111 @@
-# Default configuration for JupyterHub
-hub:
-
-  extraEnv:
-    PGUSER:
-      valueFrom:
-        secretKeyRef:
-          name: jupyterhub.openlake-postgres-cluster.credentials.postgresql.acid.zalan.do
-          key: username
-    PGPASSWORD:
-      valueFrom:
-        secretKeyRef:
-          name: jupyterhub.openlake-postgres-cluster.credentials.postgresql.acid.zalan.do
-          key: password
-
-  config:
-    JupyterHub:
-      db_url_retry:
-        max_retries: 3
-        retry_delay: 10  # Retry every 10 seconds, up to 5 times
-      authenticator_class: nativeauthenticator.NativeAuthenticator
-      admin_users:
-        - openlake_admin
-    Authenticator:
-      admin_users:
-        - openlake_admin
-      allowed_users:
-        - openlake_admin
-      check_common_password: true
-      minimum_password_length: 8
-      enable_signup: true
-
-
-  extraConfig:
-    00-spark-config: |
-      c.KubeSpawner.environment = {
-          'SPARK_HOME': '/opt/spark',
-          'PYTHONPATH': '$PYTHONPATH:/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9-src.zip',
-          'SPARK_OPTS': '--driver-java-options=-Xms1024M --driver-java-options=-Xmx4096M --driver-java-options=-Dlog4j.logLevel=info',
-          'HIVE_CONF_DIR': '/etc/hive/conf'
-      }
-  
-  extraVolumes:
-    - name: hive-config
-      configMap:
-        name: openlake-hive-metastore-config
-  
-  extraVolumeMounts:
-    - mountPath: /etc/hive/conf
-      name: hive-config
-      subPath: hive-site.xml
-
-# JupyterHub configuration
 jupyterhub:
-  
+  hub:
+    db:
+      type: postgres
+      url: postgresql://openlake-postgres-cluster:5432/jupyterhub
+    extraEnv:
+      PGUSER:
+        valueFrom:
+          secretKeyRef:
+            name: jupyterhub.openlake-postgres-cluster.credentials.postgresql.acid.zalan.do
+            key: username
+      PGPASSWORD:
+        valueFrom:
+          secretKeyRef:
+            name: jupyterhub.openlake-postgres-cluster.credentials.postgresql.acid.zalan.do
+            key: password
+    config:
+      JupyterHub:
+        db_url_retry:
+          max_retries: 3
+          retry_delay: 10  # Retry every 10 seconds, up to 5 times
+        authenticator_class: nativeauthenticator.NativeAuthenticator
+        admin_users:
+          - openlake_admin
+      Authenticator:
+        admin_users:
+          - openlake_admin
+        allowed_users:
+          - openlake_admin
+        check_common_password: true
+        minimum_password_length: 8
+        enable_signup: true
+
+  # Culling configuration
+  cull:
+    enabled: true
+    users: false              # Don't cull users
+    timeout: 3600             # Cull after 1 hour of inactivity
+    every: 300                # Check every 5 minutes
+    maxAge: 36000             # Cull after 24 hours, even if active
+    removeNamedServers: true  # Remove named servers as well
+    concurrency: 10           # Number of concurrent culling operations
+
+  singleuser:
+    image:
+      name: jupyterhub-spark
+      tag: latest
+      pullPolicy: Never
+    serviceAccountName: spark
+    extraEnv:
+      SPARK_MASTER: k8s://https://kubernetes.default.svc
+      SPARK_DRIVER_HOST:
+        valueFrom:
+          fieldRef:
+            fieldPath: status.podIP
+      SPARK_DRIVER_BIND_ADDRESS: "0.0.0.0"
+    extraFiles:
+      jupyter_notebook_config.json:
+        mountPath: /etc/jupyter/jupyter_notebook_config.json
+        data:
+          ServerApp:
+            kernel_manager_class: "jupyter_server.services.kernels.kernelmanager.MappingKernelManager"  # Updated path
+            shutdown_no_activity_timeout: 3600
+          MappingKernelManager:
+            cull_idle_timeout: 1200
+            cull_interval: 300
+            cull_connected: true
+            cull_busy: false
+    cpu:
+      limit: 4
+      guarantee: 2
+    memory:
+      limit: 8G
+      guarantee: 2G
+    storage:
+      capacity: 5Gi
+      dynamic: {}
+      homeMountPath: /home/jovyan
+    networkPolicy:
+      enabled: false
+
   prePuller:
     hook:
       enabled: false
     continuous:
       enabled: false
-  singleuser:
-    image:
-      name: jupyterhub-spark
-      tag: latest
-      pullPolicy: IfNotPresent
-    serviceAccountName: spark
 
-  
-  extraEnv:
-    HIVE_METASTORE_URI: thrift://openlake-hive-metastore:9083
-    NAMESPACE: default
-  
-  storage:
-    capacity: 10Gi
-    dynamic:
-      storageClass: standard
-    extraVolumes:
-      - name: hive-config
-        configMap:
-          name: openlake-hive-metastore-config
-    extraVolumeMounts:
-      - mountPath: /etc/hive/conf
-        name: hive-config
-        subPath: hive-site.xml
-  
-  # Resource limits for the singleuser pods
-  cpu:
-    limit: 2
-    guarantee: 0.5
-  memory:
-    limit: 4G
-    guarantee: 1G
-  
+  # proxy relates to the proxy pod, the proxy-public service, and the autohttps
+  # pod and proxy-http service.
+  proxy:
+    secretToken:
+    annotations: {}
+    deploymentStrategy:
+      type: Recreate
+      rollingUpdate:
+    service:
+      type: ClusterIP
+      labels: {}
+      annotations: {}
+      nodePorts:
+        http:
+        https:
+      disableHttpPort: false
+      extraPorts: []
+      loadBalancerIP:
+      loadBalancerSourceRanges: []
 
-  # Use default command
-  defaultUrl: "/lab"
-  cmd: ["start-notebook.sh", "--ip=0.0.0.0", "--port=8888", "--NotebookApp.token=''", "--NotebookApp.password=''", "--NotebookApp.allow_origin='*'"]
-
-
-# Custom configuration for Spark - this will be used by our templates, not by JupyterHub directly
-custom:
-  sparkImage:
-    image: jupyterhub-spark
-    tag: latest
-    pullPolicy: IfNotPresent
-    
-    # Spark configuration
-    sparkConfig:
-      sparkHome: /opt/spark
-      sparkMaster: k8s://https://kubernetes.default.svc
-      sparkExecutorInstances: 2
-      sparkExecutorMemory: 2g
-      sparkExecutorCores: 1
-      sparkDriverMemory: 2g
-      sparkDriverCores: 1
-      
-      # Hive integration
-      enableHiveSupport: true
-      hiveMetastoreUris: thrift://openlake-hive-metastore:9083
-
-  # Azure-specific configuration
-  azure:
-    enabled: true
-    storageAccount: ""
-    storageAccountKey: ""
-    container: "datalake"
-
-# Add Spark image configuration
+# Add Spark image configuration for your templates
 sparkImage:
   image: "jupyterhub-spark"
   tag: "latest"
