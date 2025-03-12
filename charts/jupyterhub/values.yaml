@@ -60,6 +60,15 @@ jupyterhub:
           fieldRef:
             fieldPath: status.podIP
       SPARK_DRIVER_BIND_ADDRESS: "0.0.0.0"
+      HIVE_METASTORE_URI: thrift://openlake-hive-metastore:9083
+      STORAGE_TYPE: "azure"
+      AZURE_STORAGE_ACCOUNT: "stagesbaiblobstorage"
+      AZURE_CONTAINER_NAME: "datalake"
+      AZURE_STORAGE_KEY:
+        valueFrom:
+          secretKeyRef:
+            name: hive-metastore-storage-credentials
+            key: storage-key
     extraFiles:
       jupyter_notebook_config.json:
         mountPath: /etc/jupyter/jupyter_notebook_config.json
@@ -72,6 +81,107 @@ jupyterhub:
             cull_interval: 300
             cull_connected: true
             cull_busy: false
+      spark-defaults.conf:
+        mountPath: /opt/spark/conf/spark-defaults.conf
+        stringData: |
+          # Network binding
+          spark.driver.bindAddress 0.0.0.0
+          spark.driver.port 29413
+          
+          # Kubernetes configuration
+          spark.kubernetes.namespace default
+          spark.kubernetes.container.image spark-jupyter-worker:latest
+          spark.kubernetes.authenticate.driver.serviceAccountName spark
+          
+          # Core configurations
+          spark.sql.extensions io.delta.sql.DeltaSparkSessionExtension
+          spark.sql.catalog.spark_catalog org.apache.spark.sql.delta.catalog.DeltaCatalog
+          spark.sql.catalogImplementation hive
+          
+          # Azure storage configuration
+          spark.hadoop.fs.azure.account.auth.type SharedKey
+          spark.hadoop.fs.abfss.impl org.apache.hadoop.fs.azurebfs.SecureAzureBlobFileSystem
+      
+      # PySpark kernel specification 
+      pyspark-kernel.json:
+        mountPath: /opt/conda/share/jupyter/kernels/pyspark/kernel.json
+        stringData: |
+          {
+            "display_name": "PySpark",
+            "language": "python",
+            "argv": [
+              "python",
+              "/opt/conda/share/jupyter/kernels/pyspark/pyspark_kernel.py",
+              "-f",
+              "{connection_file}"
+            ],
+            "env": {
+              "SPARK_HOME": "/opt/spark",
+              "PYTHONPATH": "/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.7-src.zip:/opt/spark/python/lib/pyspark.zip",
+              "PYSPARK_PYTHON": "python3",
+              "PYSPARK_DRIVER_PYTHON": "python3"
+            }
+          }
+      
+      # Custom PySpark kernel script for dynamic configuration
+      pyspark_kernel.py:
+        mountPath: /opt/conda/share/jupyter/kernels/pyspark/pyspark_kernel.py
+        stringData: |
+          #!/usr/bin/env python
+          import os
+          import sys
+          import socket
+          
+          # Get pod IP for proper binding
+          hostname = socket.gethostname()
+          host_ip = socket.gethostbyname(hostname)
+          
+          # Get environment variables
+          hive_metastore_uri = os.environ.get('HIVE_METASTORE_URI', 'thrift://openlake-hive-metastore:9083')
+          azure_storage_account = os.environ.get('AZURE_STORAGE_ACCOUNT', 'stagesbaiblobstorage')
+          azure_container = os.environ.get('AZURE_CONTAINER_NAME', 'datalake')
+          azure_storage_key = os.environ.get('AZURE_STORAGE_KEY', '')
+          
+          # Set critical environment variables
+          os.environ['SPARK_LOCAL_IP'] = host_ip
+          os.environ['SPARK_DRIVER_HOST'] = host_ip
+          
+          # Initialize Spark session before launching kernel
+          try:
+              from pyspark.sql import SparkSession
+              
+              # Build Spark session with dynamic configurations
+              builder = SparkSession.builder \
+                  .appName("PySpark Kernel") \
+                  .master("local[*]") \
+                  .config("spark.driver.host", host_ip) \
+                  .config("spark.hadoop.hive.metastore.uris", hive_metastore_uri) \
+                  .config("spark.hadoop.fs.azure.account.key.stagesbaiblobstorage.dfs.core.windows.net", azure_storage_key) \
+                  .config("spark.sql.warehouse.dir", f"abfss://{azure_container}@{azure_storage_account}.dfs.core.windows.net/warehouse")
+              
+              # Create Spark session
+              spark = builder.getOrCreate()
+              
+              # Set log level
+              spark.sparkContext.setLogLevel("WARN")
+              
+              # Make spark session available globally
+              import builtins
+              builtins.spark = spark
+              
+              print(f"PySpark {spark.version} initialized successfully")
+              print(f"Network binding: host={host_ip}, bind=0.0.0.0")
+              print(f"Using Hive metastore: {hive_metastore_uri}")
+              print(f"Warehouse directory: abfss://{azure_container}@{azure_storage_account}.dfs.core.windows.net/warehouse")
+              
+          except Exception as e:
+              print(f"Error initializing Spark: {e}")
+              import traceback
+              traceback.print_exc()
+          
+          # Launch IPython kernel
+          from ipykernel.kernelapp import IPKernelApp
+          IPKernelApp.launch_instance(argv=sys.argv[1:])
     cpu:
       limit: 4
       guarantee: 1
@@ -110,3 +220,16 @@ jupyterhub:
       extraPorts: []
       loadBalancerIP:
       loadBalancerSourceRanges: []
+
+# Add Spark image configuration for your templates
+sparkImage:
+  image: "spark-jupyter-worker"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+  sparkConfig:
+    hiveMetastoreUris: "thrift://openlake-hive-metastore:9083"
+    sparkExecutorInstances: 2
+    sparkExecutorMemory: "2g"
+    sparkExecutorCores: 1
+    sparkDriverMemory: "2g"
+    sparkDriverCores: 1
