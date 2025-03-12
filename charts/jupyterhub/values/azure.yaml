@@ -1,0 +1,13 @@
+azure:
+  enabled: true
+  storageAccount: "{{ .Values.azure.storageAccount }}"
+  storageAccountKey: "{{ .Values.azure.storageAccountKey }}"
+  container: "datalake"
+
+jupyterhub:
+  singleuser:
+    extraEnv:
+      - name: AZURE_STORAGE_ACCOUNT
+        value: "{{ .Values.azure.storageAccount }}"
+      - name: AZURE_STORAGE_CONTAINER
+        value: "{{ .Values.azure.container }}"

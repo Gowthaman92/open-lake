@@ -1,0 +1,139 @@
+# Default configuration for JupyterHub
+hub:
+
+  extraEnv:
+    PGUSER:
+      valueFrom:
+        secretKeyRef:
+          name: jupyterhub.openlake-postgres-cluster.credentials.postgresql.acid.zalan.do
+          key: username
+    PGPASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: jupyterhub.openlake-postgres-cluster.credentials.postgresql.acid.zalan.do
+          key: password
+
+  config:
+    JupyterHub:
+      db_url_retry:
+        max_retries: 3
+        retry_delay: 10  # Retry every 10 seconds, up to 5 times
+      authenticator_class: nativeauthenticator.NativeAuthenticator
+      admin_users:
+        - openlake_admin
+    Authenticator:
+      admin_users:
+        - openlake_admin
+      allowed_users:
+        - openlake_admin
+      check_common_password: true
+      minimum_password_length: 8
+      enable_signup: true
+
+
+  extraConfig:
+    00-spark-config: |
+      c.KubeSpawner.environment = {
+          'SPARK_HOME': '/opt/spark',
+          'PYTHONPATH': '$PYTHONPATH:/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9-src.zip',
+          'SPARK_OPTS': '--driver-java-options=-Xms1024M --driver-java-options=-Xmx4096M --driver-java-options=-Dlog4j.logLevel=info',
+          'HIVE_CONF_DIR': '/etc/hive/conf'
+      }
+  
+  extraVolumes:
+    - name: hive-config
+      configMap:
+        name: openlake-hive-metastore-config
+  
+  extraVolumeMounts:
+    - mountPath: /etc/hive/conf
+      name: hive-config
+      subPath: hive-site.xml
+
+# JupyterHub configuration
+jupyterhub:
+  
+  prePuller:
+    hook:
+      enabled: false
+    continuous:
+      enabled: false
+  singleuser:
+    image:
+      name: jupyterhub-spark
+      tag: latest
+      pullPolicy: IfNotPresent
+    serviceAccountName: spark
+
+  
+  extraEnv:
+    HIVE_METASTORE_URI: thrift://openlake-hive-metastore:9083
+    NAMESPACE: default
+  
+  storage:
+    capacity: 10Gi
+    dynamic:
+      storageClass: standard
+    extraVolumes:
+      - name: hive-config
+        configMap:
+          name: openlake-hive-metastore-config
+    extraVolumeMounts:
+      - mountPath: /etc/hive/conf
+        name: hive-config
+        subPath: hive-site.xml
+  
+  # Resource limits for the singleuser pods
+  cpu:
+    limit: 2
+    guarantee: 0.5
+  memory:
+    limit: 4G
+    guarantee: 1G
+  
+
+  # Use default command
+  defaultUrl: "/lab"
+  cmd: ["start-notebook.sh", "--ip=0.0.0.0", "--port=8888", "--NotebookApp.token=''", "--NotebookApp.password=''", "--NotebookApp.allow_origin='*'"]
+
+
+# Custom configuration for Spark - this will be used by our templates, not by JupyterHub directly
+custom:
+  sparkImage:
+    image: jupyterhub-spark
+    tag: latest
+    pullPolicy: IfNotPresent
+    
+    # Spark configuration
+    sparkConfig:
+      sparkHome: /opt/spark
+      sparkMaster: k8s://https://kubernetes.default.svc
+      sparkExecutorInstances: 2
+      sparkExecutorMemory: 2g
+      sparkExecutorCores: 1
+      sparkDriverMemory: 2g
+      sparkDriverCores: 1
+      
+      # Hive integration
+      enableHiveSupport: true
+      hiveMetastoreUris: thrift://openlake-hive-metastore:9083
+
+  # Azure-specific configuration
+  azure:
+    enabled: true
+    storageAccount: ""
+    storageAccountKey: ""
+    container: "datalake"
+
+# Add Spark image configuration
+sparkImage:
+  image: "jupyterhub-spark"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+  sparkConfig:
+    hiveMetastoreUris: "thrift://openlake-hive-metastore:9083"
+    sparkExecutorInstances: 2
+    sparkExecutorMemory: "2g"
+    sparkExecutorCores: 1
+    sparkDriverMemory: "2g"
+    sparkDriverCores: 1
