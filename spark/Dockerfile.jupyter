@@ -1,0 +1,13 @@
+FROM spark-base:latest
+
+USER root
+
+# Create the spark_utils.py file
+COPY spark_utils.py /usr/local/lib/python3.11/dist-packages/
+
+# Switch back to spark user
+USER spark
+
+# Set the entrypoint to our wrapper script
+ENTRYPOINT ["/opt/spark/bin/start-spark.sh"]
+CMD ["bash"] 

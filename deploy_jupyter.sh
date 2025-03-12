@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-IMAGE_NAME="jupyterhub-spark"
+IMAGE_NAME="jupyterhub-spark-singleuser"
 IMAGE_TAG="latest"
 NAMESPACE="default"  # Change this to your namespace if different
 HELM_RELEASE_NAME="jupyterhub"

@@ -4,7 +4,6 @@ FROM apache/spark:3.5.3
 USER root
 
 # Define versions as build arguments for better maintainability
-# This makes it easier to update versions in one place
 ARG DELTA_VERSION=3.2.0
 ARG SCALA_VERSION=2.12
 ARG POSTGRES_VERSION=42.2.20
@@ -12,12 +11,12 @@ ARG AZURE_STORAGE_VERSION=8.6.6
 ARG HADOOP_VERSION=3.3.4
 ARG ANTLR_VERSION=4.9.3
 
-# First, let's install system dependencies and Python
-# We combine these operations to reduce the number of layers and image size
+# Install system dependencies and Python
 RUN apt-get update && apt-get install -y \
     software-properties-common \
     curl \
-    wget && \
+    wget \
+    gettext-base && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
     apt-get install -y python3.11 python3.11-dev python3-pip && \
@@ -30,7 +29,6 @@ ENV PYSPARK_PYTHON=/usr/bin/python3 \
     PYSPARK_DRIVER_PYTHON=/usr/bin/python3
 
 # Download all dependencies in a single layer
-# This is more efficient than multiple RUN commands
 RUN cd /opt/spark/jars && \
     # PostgreSQL JDBC Driver
     curl -L -o postgresql-${POSTGRES_VERSION}.jar \
@@ -58,6 +56,10 @@ RUN cd /opt/spark/jars && \
 RUN mkdir -p /tmp/spark-events && \
     chown -R spark:spark /tmp/spark-events && \
     chown -R spark:spark /opt/spark/jars/*
+
+# Add a wrapper script to process environment variables
+COPY start-spark.sh /opt/spark/bin/start-spark.sh
+RUN chmod +x /opt/spark/bin/start-spark.sh
 
 # Add a health check to verify Spark's availability
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

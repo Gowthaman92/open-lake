@@ -43,7 +43,7 @@ jupyterhub:
 
   singleuser:
     image:
-      name: jupyterhub-spark
+      name: jupyterhub-spark-singleuser
       tag: latest
       pullPolicy: Never
     serviceAccountName: spark
@@ -107,7 +107,7 @@ jupyterhub:
 
 # Add Spark image configuration for your templates
 sparkImage:
-  image: "jupyterhub-spark"
+  image: "spark-jupyter-worker"
   tag: "latest"
   pullPolicy: IfNotPresent
   sparkConfig:
