@@ -182,6 +182,201 @@ jupyterhub:
           # Launch IPython kernel
           from ipykernel.kernelapp import IPKernelApp
           IPKernelApp.launch_instance(argv=sys.argv[1:])
+
+      # Add Distributed PySpark kernel (keep existing kernel untouched)
+      distributed-pyspark-kernel.json:
+        mountPath: /opt/conda/share/jupyter/kernels/pyspark-distributed/kernel.json
+        stringData: |
+          {
+            "display_name": "PySpark (Distributed)",
+            "language": "python",
+            "argv": [
+              "python",
+              "/opt/conda/share/jupyter/kernels/pyspark-distributed/distributed_pyspark_kernel.py",
+              "-f",
+              "{connection_file}"
+            ],
+            "env": {
+              "SPARK_HOME": "/opt/spark",
+              "PYTHONPATH": "/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.7-src.zip:/opt/spark/python/lib/pyspark.zip",
+              "PYSPARK_PYTHON": "python3",
+              "PYSPARK_DRIVER_PYTHON": "python3"
+            }
+          }
+      
+      # Script for the distributed PySpark kernel with simplified warning
+      distributed_pyspark_kernel.py:
+        mountPath: /opt/conda/share/jupyter/kernels/pyspark-distributed/distributed_pyspark_kernel.py
+        stringData: |
+          #!/usr/bin/env python
+          import os
+          import sys
+          import socket
+          import uuid
+          import atexit
+          
+          # Get pod IP for proper binding
+          hostname = socket.gethostname()
+          host_ip = socket.gethostbyname(hostname)
+          
+          # Get environment variables
+          k8s_master = os.environ.get('SPARK_MASTER', 'k8s://https://kubernetes.default.svc')
+          namespace = os.environ.get('POD_NAMESPACE', 'default')
+          spark_image = os.environ.get('SPARK_WORKER_IMAGE', 'spark-jupyter-worker:latest')
+          hive_metastore_uri = os.environ.get('HIVE_METASTORE_URI', 'thrift://openlake-hive-metastore:9083')
+          azure_storage_account = os.environ.get('AZURE_STORAGE_ACCOUNT', 'stagesbaiblobstorage')
+          azure_container = os.environ.get('AZURE_CONTAINER_NAME', 'datalake')
+          azure_storage_key = os.environ.get('AZURE_STORAGE_KEY', '')
+          
+          # Set critical environment variables
+          os.environ['SPARK_LOCAL_IP'] = host_ip
+          os.environ['SPARK_DRIVER_HOST'] = host_ip
+          os.environ['SPARK_DRIVER_BIND_ADDRESS'] = "0.0.0.0"
+          
+          # Driver port for Spark communication
+          driver_port = 29413
+          
+          # Singleton Spark session tracker
+          _spark_session = None
+          
+          # Define the user-facing function to create/get the Spark session
+          def init_spark(executor_memory="2g", executor_cores=2, min_executors=1, max_executors=5):
+              """
+              Initialize a Spark session with the specified executor resources.
+              
+              Parameters:
+              -----------
+              executor_memory : str
+                  Memory per executor (e.g., "1g", "2g", "512m")
+              executor_cores : int
+                  Number of cores per executor
+              min_executors : int
+                  Minimum number of executors
+              max_executors : int
+                  Maximum number of executors
+                  
+              Returns:
+              --------
+              spark : SparkSession
+                  The configured Spark session
+                  
+              Note:
+              -----
+              Once created, the Spark session cannot be recreated.
+              To use different settings, restart the kernel.
+              """
+              global _spark_session
+              
+              # If session exists, warn that it can't be recreated
+              if _spark_session is not None:
+                  print("WARNING: Spark session is already initialized and cannot be recreated.")
+                  print("To create a new session, restart the kernel.")
+                  return _spark_session
+              
+              # No session exists yet, create one
+              # Generate a unique app ID for this session
+              app_id = f"jupyter-spark-{uuid.uuid4().hex[:8]}"
+              
+              # Import here to avoid loading Spark until necessary
+              from pyspark.sql import SparkSession
+              
+              print(f"Creating new Spark session with app ID: {app_id}...")
+              
+              # Build the Spark session with the desired configuration
+              builder = SparkSession.builder \
+                  .appName(app_id) \
+                  .master(k8s_master) \
+                  .config("spark.kubernetes.namespace", namespace) \
+                  .config("spark.kubernetes.container.image", spark_image) \
+                  .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark") \
+                  .config("spark.driver.host", host_ip) \
+                  .config("spark.driver.port", str(driver_port)) \
+                  .config("spark.driver.bindAddress", "0.0.0.0") \
+                  .config("spark.executor.instances", str(min_executors)) \
+                  .config("spark.executor.memory", executor_memory) \
+                  .config("spark.executor.cores", str(executor_cores)) \
+                  .config("spark.dynamicAllocation.enabled", "true") \
+                  .config("spark.dynamicAllocation.initialExecutors", str(min_executors)) \
+                  .config("spark.dynamicAllocation.minExecutors", str(min_executors)) \
+                  .config("spark.dynamicAllocation.maxExecutors", str(max_executors)) \
+                  .config("spark.kubernetes.executor.deleteOnTermination", "true") \
+                  .config("spark.kubernetes.driver.pod.name", hostname) \
+                  .config("spark.kubernetes.executor.podNamePrefix", f"spark-exec-{app_id}") \
+                  .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+                  .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+                  .config("spark.hadoop.hive.metastore.uris", hive_metastore_uri) \
+                  .config("spark.hadoop.fs.azure.account.auth.type", "SharedKey") \
+                  .config("spark.hadoop.fs.azure.account.key.stagesbaiblobstorage.dfs.core.windows.net", azure_storage_key) \
+                  .config("spark.hadoop.fs.abfss.impl", "org.apache.hadoop.fs.azurebfs.SecureAzureBlobFileSystem") \
+                  .config("spark.sql.warehouse.dir", f"abfss://{azure_container}@{azure_storage_account}.dfs.core.windows.net/warehouse")
+              
+              try:
+                  new_spark = builder.getOrCreate()
+                  new_spark.sparkContext.setLogLevel("WARN")
+                  
+                  # Store session globally
+                  _spark_session = new_spark
+                  
+                  # Make spark session available globally
+                  import builtins
+                  builtins.spark = new_spark
+                  
+                  print(f"Distributed PySpark {new_spark.version} initialized with:")
+                  print(f"  - App ID: {app_id}")
+                  print(f"  - Executor Memory: {executor_memory}")
+                  print(f"  - Executor Cores: {executor_cores}")
+                  print(f"  - Min Executors: {min_executors}")
+                  print(f"  - Max Executors: {max_executors}")
+                  
+                  return new_spark
+                  
+              except Exception as e:
+                  print(f"Error creating Spark session: {e}")
+                  import traceback
+                  traceback.print_exc()
+                  return None
+          
+          # Register cleanup for kernel exit
+          def cleanup_spark():
+              """For kernel shutdown - in most cases not manually called"""
+              global _spark_session
+              if _spark_session is not None:
+                  try:
+                      _spark_session.stop()
+                  except:
+                      pass
+          
+          # Register cleanup on exit
+          atexit.register(cleanup_spark)
+          
+          # Initialize kernel without Spark (user will call init_spark)
+          try:
+              import builtins
+              builtins.init_spark = init_spark
+              # For backward compatibility
+              builtins.create_spark_session = init_spark
+              builtins.configure_spark = init_spark
+              
+              print("Welcome to the Distributed PySpark Kernel!")
+              print("No Spark session is running yet.")
+              print("To create a Spark session with custom resources, run:")
+              print("\nspark = init_spark(")
+              print("    executor_memory='4g',")
+              print("    executor_cores=2,")
+              print("    min_executors=2,")
+              print("    max_executors=5")
+              print(")")
+              print("\nIMPORTANT: Once initialized, Spark session cannot be recreated.")
+              print("To create a new session with different settings, restart the kernel.")
+              
+          except Exception as e:
+              print(f"Error during kernel initialization: {e}")
+              import traceback
+              traceback.print_exc()
+          
+          # Launch IPython kernel
+          from ipykernel.kernelapp import IPKernelApp
+          IPKernelApp.launch_instance(argv=sys.argv[1:])
     cpu:
       limit: 4
       guarantee: 1
