@@ -109,6 +109,21 @@ helm upgrade --install hive-metastore $SCRIPT_DIR/charts/hive-metastore \
 echo "Waiting for Hive Metastore to be ready..."
 kubectl wait --for=condition=available deployment/openlake-hive-metastore --timeout=300s --context=${KUBECTL_CONTEXT}
 
+# Install Trino
+echo "====================================================="
+echo "  Deploying Trino"
+echo "====================================================="
+
+# Install/upgrade Trino using the official chart
+echo "Installing Trino using official Helm chart..."
+helm upgrade --install trino trino/trino \
+  -f $SCRIPT_DIR/charts/trino/values.yaml \
+  --kube-context=${KUBECTL_CONTEXT}
+
+# Wait for Trino to be ready
+echo "Waiting for Trino to be ready..."
+kubectl wait --for=condition=available deployment/trino-coordinator --timeout=300s --context=${KUBECTL_CONTEXT}
+
 # Build and deploy JupyterHub
 echo "====================================================="
 echo "  Deploying JupyterHub with Spark"

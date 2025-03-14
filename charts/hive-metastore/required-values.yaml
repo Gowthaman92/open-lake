@@ -10,8 +10,8 @@ storage:
     storageKey: ""         # Required if not using existingSecret
     # Optional: Use existing Kubernetes secret instead of storageKey
     existingSecret:
-      name: "hive-metastore-storage-credentials"             # Name of the existing secret, change this to your secret name
-      key: "storage-key"   # Key in the secret containing the storage key, change this to your key name
+      name: "azure-storage-secret"             # Name of the existing secret
+      key: "storage-key"   # Key in the secret containing the storage key
 
 database:
   # Required: Choose database mode

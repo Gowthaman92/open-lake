@@ -5,10 +5,10 @@ image:
 catalogs:
   lakehouse: |-
     connector.name=delta_lake
-    hive.metastore.uri=thrift://hive-metastore:9083
+    hive.metastore.uri=thrift://openlake-hive-metastore:9083
     fs.native-azure.enabled=true
     azure.auth-type=ACCESS_KEY
-    azure.access-key=###
+    azure.access-key=
     azure.endpoint=core.windows.net
     hive.metastore-cache-ttl=5h
     hive.metastore-refresh-interval=1m
@@ -17,15 +17,16 @@ server:
   workers: 1
   config:
     # Memory settings
-    query.max-memory: "200MB"
-    memory.heap-headroom-per-node: "200MB"
+    query.max-memory: "100MB"
+    memory.heap-headroom-per-node: "100MB"
+    query.max-memory-per-node: "700MB"
     task.writer-count: 1
     query.max-execution-time: "180s"
     query.low-memory-killer.enabled: true
 
 coordinator:
   jvm:
-    maxHeapSize: "2G"
+    maxHeapSize: "1536m"
     extraFlags:
       - "-XX:+UseG1GC"
       - "-XX:G1HeapRegionSize=32M"
@@ -33,15 +34,15 @@ coordinator:
       - "-XX:+ExitOnOutOfMemoryError"
   resources:
     requests:
+      memory: "2Gi"
+      cpu: "0.5"
+    limits:
       memory: "2.5Gi"
       cpu: "1"
-    limits:
-      memory: "3Gi"
-      cpu: "2"
 
 worker:
   jvm:
-    maxHeapSize: "2G"
+    maxHeapSize: "1536m"
     extraFlags:
       - "-XX:+UseG1GC"
       - "-XX:G1HeapRegionSize=32M"
@@ -54,19 +55,18 @@ worker:
   resources:
     requests:
       memory: "2Gi"
-      cpu: "1"
+      cpu: "0.5"
     limits:
-      memory: "3Gi"
-      cpu: "1"
+      memory: "2.5Gi"
+      cpu: "0.75"
   
   # Autoscaling configuration
   autoscaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicas: 0
+    maxReplicas: 3
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-
 
 # Service configuration
 service:
@@ -93,4 +93,4 @@ livenessProbe:
   periodSeconds: 20
   timeoutSeconds: 5
   failureThreshold: 3
-  successThreshold: 1
+  successThreshold: 1 
