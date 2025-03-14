@@ -67,7 +67,7 @@ jupyterhub:
       AZURE_STORAGE_KEY:
         valueFrom:
           secretKeyRef:
-            name: hive-metastore-storage-credentials
+            name: azure-storage-secret 
             key: storage-key
     extraFiles:
       jupyter_notebook_config.json:
@@ -307,7 +307,6 @@ jupyterhub:
                   .config("spark.hadoop.hive.metastore.uris", hive_metastore_uri) \
                   .config("spark.hadoop.fs.azure.account.auth.type", "SharedKey") \
                   .config("spark.hadoop.fs.azure.account.key.stagesbaiblobstorage.dfs.core.windows.net", azure_storage_key) \
-                  .config("spark.hadoop.fs.abfss.impl", "org.apache.hadoop.fs.azurebfs.SecureAzureBlobFileSystem") \
                   .config("spark.sql.warehouse.dir", f"abfss://{azure_container}@{azure_storage_account}.dfs.core.windows.net/warehouse")
               
               try:
@@ -415,16 +414,3 @@ jupyterhub:
       extraPorts: []
       loadBalancerIP:
       loadBalancerSourceRanges: []
-
-# Add Spark image configuration for your templates
-sparkImage:
-  image: "spark-jupyter-worker"
-  tag: "latest"
-  pullPolicy: IfNotPresent
-  sparkConfig:
-    hiveMetastoreUris: "thrift://openlake-hive-metastore:9083"
-    sparkExecutorInstances: 2
-    sparkExecutorMemory: "2g"
-    sparkExecutorCores: 1
-    sparkDriverMemory: "2g"
-    sparkDriverCores: 1
