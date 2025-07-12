@@ -1,4 +1,4 @@
-FROM jupyterhub/singleuser:5.2.1
+FROM jupyterhub/singleuser:5.3.0
 
 USER root
 
@@ -64,26 +64,27 @@ RUN wget -q https://repo1.maven.org/maven2/org/postgresql/postgresql/42.5.1/post
     wget -q https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.30/mysql-connector-java-8.0.30.jar -P $SPARK_HOME/jars/
 
 # Install Python packages
+RUN pip install --upgrade pip setuptools
 RUN pip install --no-cache-dir \
     delta-spark==${DELTA_VERSION} \
-    pyhive==0.6.5 \
-    thrift==0.16.0 \
+    pyhive==0.7.0 \
+    thrift==0.22.0 \
     thrift-sasl==0.4.3 \
-    pyarrow==12.0.0 \
-    pandas==2.0.3 \
-    numpy==1.24.3 \
-    matplotlib==3.7.2 \
-    seaborn==0.12.2 \
-    scikit-learn==1.3.0 \
-    plotly==5.15.0 \
-    ipywidgets==8.0.6 \
-    boto3==1.28.15 \
-    azure-storage-blob==12.17.0 \
-    azure-identity==1.13.0 \
+    pyarrow==20.0.0 \
+    pandas==2.3.1 \
+    numpy==2.3.1 \
+    matplotlib==3.10.3 \
+    seaborn==0.13.2 \
+    scikit-learn==1.7.0 \
+    plotly==6.2.0 \
+    ipywidgets==8.1.7 \
+    boto3==1.39.4 \
+    azure-storage-blob==12.25.1 \
+    azure-identity==1.23.0 \
     sqlalchemy==2.0.19 \
-    psycopg2-binary==2.9.6 \
-    pymysql==1.1.0 \
-    ipython-sql==0.4.1
+    psycopg2-binary==2.9.10 \
+    pymysql==1.1.1 \
+    ipython-sql==0.5.0
 
 # Create directory for Hive configuration
 RUN mkdir -p /etc/hive/conf
