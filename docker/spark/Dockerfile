@@ -23,10 +23,13 @@ RUN apt-get update && apt-get install -y \
     wget && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y python3.12 python3.12-dev python3-pip && \
+    apt-get install -y python3.12 python3.12-dev python3.12-venv && \
     rm -rf /var/lib/apt/lists/* && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
     update-alternatives --set python3 /usr/bin/python3.12
+
+# Install pip for Python 3.12 directly
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
 
 # Set Python environment variables
 ENV PYSPARK_PYTHON=/usr/bin/python3 \
@@ -72,8 +75,8 @@ RUN cd /opt/spark/jars && \
     https://repo1.maven.org/maven2/mysql/mysql-connector-java/${MYSQL_CONNECTOR_VERSION}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar
 
 # Install Python packages
-RUN pip install --upgrade pip setuptools
-RUN pip install --no-cache-dir \
+RUN python3.12 -m pip install --upgrade pip setuptools wheel
+RUN python3.12 -m pip install --no-cache-dir \
     delta-spark==${DELTA_VERSION} \
     pyhive==0.7.0 \
     thrift==0.22.0 \
